@@ -22,7 +22,16 @@ app.get("/api/tasks", (req, res) => {
     res.json(tasks);
 });
 
+app.post("/api/tasks", (req, res) => {
+    const newTask = {
+        id: tasks.length + 1,
+        title: req.body.title
+    };
 
+    tasks.push(newTask);
+
+    res.json(newTask);
+});
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
