@@ -9,7 +9,9 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = 5000;
+
 const client = new MongoClient(process.env.MONGODB_URI);
+
 const db = client.db("test");
 const tasksCollection = db.collection("tasks");
 
@@ -24,6 +26,7 @@ async function startServer() {
         app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);
         });
+
     } catch (error) {
         console.error("MongoDB connection failed:");
         console.error(error);
@@ -32,37 +35,36 @@ async function startServer() {
 
 startServer();
 
-// Temporary tasks
-// let tasks = [
-//     { id: 1, title: "Learn frontend" },
-//     { id: 2, title: "Learn backend" },
-//     { id: 3, title: "Learn deployment" }
-// ];
-
 // GET tasks
 app.get("/api/tasks", async (req, res) => {
     try {
-        const tasks = await tasksCollection.find({}).toArray();
+        const tasks = await tasksCollection.find().toArray();
+
         res.json(tasks);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error(error);
+        res.status(500).json({ error: "Failed to get tasks" });
     }
 });
 
 // POST a new task
 app.post("/api/tasks", async (req, res) => {
-    const newTask = {
-        title: req.body.title
-    };
+    try {
+        console.log("Received body:", req.body);
 
-    const result = await tasksCollection.insertOne(newTask);
+        const newTask = {
+            title: req.body.title
+        };
 
-    res.json({
-        _id: result.insertedId,
-        ...newTask
-    });
-});
+        const result = await tasksCollection.insertOne(newTask);
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+        res.status(201).json({
+            _id: result.insertedId,
+            ...newTask
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to create task" });
+    }
 });
