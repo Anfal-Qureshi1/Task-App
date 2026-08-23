@@ -13,6 +13,25 @@ const client = new MongoClient(process.env.MONGODB_URI);
 const db = client.db("test");
 const tasksCollection = db.collection("tasks");
 
+async function startServer() {
+    try {
+        await client.connect();
+
+        await db.command({ ping: 1 });
+
+        console.log("MongoDB connected successfully!");
+
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error("MongoDB connection failed:");
+        console.error(error);
+    }
+}
+
+startServer();
+
 // Temporary tasks
 // let tasks = [
 //     { id: 1, title: "Learn frontend" },
