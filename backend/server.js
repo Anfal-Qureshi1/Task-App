@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
@@ -15,6 +15,7 @@ const client = new MongoClient(process.env.MONGODB_URI);
 const db = client.db("test");
 const tasksCollection = db.collection("tasks");
 
+// Start server
 async function startServer() {
     try {
         await client.connect();
@@ -35,25 +36,79 @@ async function startServer() {
 
 startServer();
 
-// GET tasks
+
+// =========================
+// GET ALL TASKS
+// =========================
 app.get("/api/tasks", async (req, res) => {
     try {
         const tasks = await tasksCollection.find().toArray();
 
         res.json(tasks);
+
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Failed to get tasks" });
+
+        res.status(500).json({
+            error: "Failed to get tasks"
+        });
     }
 });
 
-// POST a new task
+
+// =========================
+// GET SINGLE TASK
+// =========================
+app.get("/api/tasks/:id", async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "Invalid task ID"
+            });
+        }
+
+        const task = await tasksCollection.findOne({
+            _id: new ObjectId(id)
+        });
+
+        if (!task) {
+            return res.status(404).json({
+                error: "Task not found"
+            });
+        }
+
+        res.json(task);
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: "Failed to get task"
+        });
+    }
+});
+
+
+// =========================
+// POST - CREATE TASK
+// =========================
 app.post("/api/tasks", async (req, res) => {
     try {
-        console.log("Received body:", req.body);
+        const { title } = req.body;
+
+        // Validate title
+        if (typeof title !== "string" || title.trim() === "") {
+            return res.status(400).json({
+                error: "Title is required"
+            });
+        }
 
         const newTask = {
-            title: req.body.title
+            title: title.trim(),
+            completed: false,
+            createdAt: new Date()
         };
 
         const result = await tasksCollection.insertOne(newTask);
@@ -65,6 +120,128 @@ app.post("/api/tasks", async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Failed to create task" });
+
+        res.status(500).json({
+            error: "Failed to create task"
+        });
+    }
+});
+
+
+// =========================
+// DELETE TASK
+// =========================
+app.delete("/api/tasks/:id", async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "Invalid task ID"
+            });
+        }
+
+        const result = await tasksCollection.deleteOne({
+            _id: new ObjectId(id)
+        });
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({
+                error: "Task not found"
+            });
+        }
+
+        res.json({
+            message: "Task deleted successfully"
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: "Failed to delete task"
+        });
+    }
+});
+
+
+// =========================
+// UPDATE TASK
+// =========================
+app.patch("/api/tasks/:id", async (req, res) => {
+    try {
+        const id = req.params.id;
+        const { title, completed } = req.body;
+
+        // Check ID
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({
+                error: "Invalid task ID"
+            });
+        }
+
+        // Check update data
+        if (title === undefined && completed === undefined) {
+            return res.status(400).json({
+                error: "No update data provided"
+            });
+        }
+
+        const updateFields = {};
+
+        // Validate title
+        if (title !== undefined) {
+            if (
+                typeof title !== "string" ||
+                title.trim() === ""
+            ) {
+                return res.status(400).json({
+                    error: "Title must be a non-empty string"
+                });
+            }
+
+            updateFields.title = title.trim();
+        }
+
+        // Validate completed
+        if (completed !== undefined) {
+            if (typeof completed !== "boolean") {
+                return res.status(400).json({
+                    error: "Completed must be true or false"
+                });
+            }
+
+            updateFields.completed = completed;
+        }
+
+        // Update task
+        const result = await tasksCollection.updateOne(
+            {
+                _id: new ObjectId(id)
+            },
+            {
+                $set: updateFields
+            }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({
+                error: "Task not found"
+            });
+        }
+
+        // Get updated task
+        const updatedTask = await tasksCollection.findOne({
+            _id: new ObjectId(id)
+        });
+
+        res.json(updatedTask);
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: "Failed to update task"
+        });
     }
 });
