@@ -96,7 +96,7 @@ app.get("/api/tasks/:id", async (req, res) => {
 // =========================
 app.post("/api/tasks", async (req, res) => {
     try {
-        const { title } = req.body;
+        const { title, priority } = req.body;
 
         // Validate title
         if (typeof title !== "string" || title.trim() === "") {
@@ -105,8 +105,17 @@ app.post("/api/tasks", async (req, res) => {
             });
         }
 
+        const allowedPriorities = ["low", "medium", "high"];
+
+        if (!allowedPriorities.includes(priority)) {
+        return res.status(400).json({
+        error: "Priority must be low, medium, or high"
+        });
+        }
+
         const newTask = {
             title: title.trim(),
+            priority: priority,
             completed: false,
             createdAt: new Date()
         };
