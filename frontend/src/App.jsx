@@ -101,7 +101,7 @@ function App() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/api/tasks/${task._id}`,
+        `${API_URL}/api/tasks/${task._id}`,
         {
           method: "PATCH",
 
