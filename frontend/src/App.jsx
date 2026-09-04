@@ -4,12 +4,15 @@ import TaskItem from "./TaskItem";
 function App() {
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
+  const [priority, setPriority] = useState("medium");
 
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+
 
   // =========================
   // GET ALL TASKS
@@ -61,7 +64,8 @@ function App() {
           },
 
           body: JSON.stringify({
-            title: title.trim()
+            title: title.trim(),
+           priority: priority
           })
         }
       );
@@ -190,7 +194,8 @@ function App() {
           },
 
           body: JSON.stringify({
-            title: editTitle.trim()
+            title: editTitle.trim(),
+            priority: priority
           })
         }
       );
@@ -250,6 +255,15 @@ function App() {
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Enter a task"
       />
+
+      <select
+        value={priority}
+        onChange={(e) => setPriority(e.target.value)}
+      >
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+      </select>
 
       <button onClick={addTask}>
         Add Task
