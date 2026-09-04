@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import TaskItem from "./TaskItem";
 
 function App() {
+
+  const API_URL = import.meta.env.VITE_API_URL;
+  
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("medium");
@@ -23,7 +26,7 @@ function App() {
       setError("");
 
       const response = await fetch(
-        "http://localhost:5000/api/tasks"
+        `${API_URL}/api/tasks`
       );
 
       if (!response.ok) {
@@ -55,7 +58,7 @@ function App() {
       setError("");
 
       const response = await fetch(
-        "http://localhost:5000/api/tasks",
+        `${API_URL}/api/tasks`,
         {
           method: "POST",
 
@@ -141,7 +144,7 @@ function App() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/api/tasks/${id}`,
+        `${API_URL}/api/tasks/${id}`,
         {
           method: "DELETE"
         }
@@ -185,7 +188,7 @@ function App() {
       setError("");
 
       const response = await fetch(
-        `http://localhost:5000/api/tasks/${id}`,
+        `${API_URL}/api/tasks/${id}`,
         {
           method: "PATCH",
 
