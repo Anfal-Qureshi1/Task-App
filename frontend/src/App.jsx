@@ -15,19 +15,28 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
 
 
   // =========================
   // GET ALL TASKS
   // =========================
   const getTasks = async () => {
+    
     try {
+      
       setLoading(true);
       setError("");
-
+      const token = localStorage.getItem("token");
       const response = await fetch(
-        `${API_URL}/api/tasks`
-      );
+        `${API_URL}/api/tasks`,
+         {   
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  }
+);
 
       if (!response.ok) {
         throw new Error("Failed to get tasks");
@@ -57,21 +66,24 @@ function App() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/api/tasks`,
-        {
-          method: "POST",
+      const token = localStorage.getItem("token");
 
-          headers: {
-            "Content-Type": "application/json"
-          },
+const response = await fetch(
+  `${API_URL}/api/tasks`,
+  {
+    method: "POST",
 
-          body: JSON.stringify({
-            title: title.trim(),
-           priority: priority
-          })
-        }
-      );
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+
+    body: JSON.stringify({
+      title: title.trim(),
+      priority: priority
+    })
+  }
+);
 
       if (!response.ok) {
         throw new Error("Failed to create task");
@@ -239,10 +251,53 @@ function App() {
   // =========================
   // LOAD WHEN APP OPENS
   // =========================
-  useEffect(() => {
-    getTasks();
-  }, []);
+useEffect(() => {
+  const token = localStorage.getItem("token");
 
+  if (token) {
+    getTasks();
+  } else {
+    setLoading(false);
+  }
+}, []);
+
+  const loginUser = async () => {
+  try {
+    setError("");
+
+    const response = await fetch(
+      `${API_URL}/api/auth/login`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Login failed");
+    }
+
+   localStorage.setItem("token", data.token);
+
+  getTasks();
+
+  console.log("Login response:", data);
+
+  } catch (error) {
+    console.error("Login error:", error);
+    setError(error.message);
+  }
+};
 
   // =========================
   // UI
@@ -251,6 +306,26 @@ function App() {
     <div>
 
       <h1>Mini Task App</h1>
+
+      <h2>Login</h2>
+
+<input
+  type="email"
+  value={loginEmail}
+  onChange={(e) => setLoginEmail(e.target.value)}
+  placeholder="Enter email"
+/>
+
+<input
+  type="password"
+  value={loginPassword}
+  onChange={(e) => setLoginPassword(e.target.value)}
+  placeholder="Enter password"
+  />
+
+  <button onClick={loginUser}>
+  Login
+</button>
 
       <input
         type="text"
