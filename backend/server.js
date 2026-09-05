@@ -99,7 +99,7 @@ app.get("/api/tasks", authenticateToken, async (req, res) => {
 // =========================
 // GET SINGLE TASK
 // =========================
-app.get("/api/tasks/:id", async (req, res) => {
+app.get("/api/tasks/:id", authenticateToken, async (req, res) => {
     try {
         const id = req.params.id;
 
@@ -110,9 +110,9 @@ app.get("/api/tasks/:id", async (req, res) => {
         }
 
         const task = await tasksCollection.findOne({
-            _id: new ObjectId(id)
+        _id: new ObjectId(id),
+         userId: new ObjectId(req.user.userId)
         });
-
         if (!task) {
             return res.status(404).json({
                 error: "Task not found"
@@ -181,7 +181,7 @@ app.post("/api/tasks", authenticateToken, async (req, res) => {
 // =========================
 // DELETE TASK
 // =========================
-app.delete("/api/tasks/:id", async (req, res) => {
+app.delete("/api/tasks/:id", authenticateToken, async (req, res) => {
     try {
         const id = req.params.id;
 
@@ -191,8 +191,9 @@ app.delete("/api/tasks/:id", async (req, res) => {
             });
         }
 
-        const result = await tasksCollection.deleteOne({
-            _id: new ObjectId(id)
+       const result = await tasksCollection.deleteOne({
+        _id: new ObjectId(id),
+        userId: new ObjectId(req.user.userId)
         });
 
         if (result.deletedCount === 0) {
@@ -218,7 +219,7 @@ app.delete("/api/tasks/:id", async (req, res) => {
 // =========================
 // UPDATE TASK
 // =========================
-app.patch("/api/tasks/:id", async (req, res) => {
+app.patch("/api/tasks/:id", authenticateToken, async (req, res) => {
     try {
         const id = req.params.id;
         const { title, completed } = req.body;
@@ -267,7 +268,8 @@ app.patch("/api/tasks/:id", async (req, res) => {
         // Update task
         const result = await tasksCollection.updateOne(
             {
-                _id: new ObjectId(id)
+            _id: new ObjectId(id),
+             userId: new ObjectId(req.user.userId)
             },
             {
                 $set: updateFields
@@ -282,7 +284,8 @@ app.patch("/api/tasks/:id", async (req, res) => {
 
         // Get updated task
         const updatedTask = await tasksCollection.findOne({
-            _id: new ObjectId(id)
+        _id: new ObjectId(id),
+        userId: new ObjectId(req.user.userId)
         });
 
         res.json(updatedTask);
