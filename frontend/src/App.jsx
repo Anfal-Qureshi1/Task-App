@@ -18,7 +18,12 @@ function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
+  const [user, setUser] = useState(null);
 
+  const [registerName, setRegisterName] = useState("");
+const [registerEmail, setRegisterEmail] = useState("");
+const [registerPassword, setRegisterPassword] = useState("");
+const [authMode, setAuthMode] = useState("login");
   // =========================
   // GET ALL TASKS
   // =========================
@@ -253,8 +258,10 @@ const response = await fetch(
   // =========================
 useEffect(() => {
   const token = localStorage.getItem("token");
+  const savedUser = localStorage.getItem("user");
 
-  if (token) {
+  if (token && savedUser) {
+    setUser(JSON.parse(savedUser));
     getTasks();
   } else {
     setLoading(false);
@@ -287,14 +294,64 @@ useEffect(() => {
       throw new Error(data.error || "Login failed");
     }
 
-   localStorage.setItem("token", data.token);
-
+  localStorage.setItem("token", data.token);
+  localStorage.setItem("user", JSON.stringify(data.user));
+  setUser(data.user);
   getTasks();
 
   console.log("Login response:", data);
 
   } catch (error) {
     console.error("Login error:", error);
+    setError(error.message);
+  }
+};
+
+const logoutUser = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  setUser(null);
+  setTasks([]);
+};
+
+const registerUser = async () => {
+  try {
+    setError("");
+
+    const response = await fetch(
+      `${API_URL}/api/auth/register`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          name: registerName,
+          email: registerEmail,
+          password: registerPassword
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Registration failed");
+    }
+
+    console.log("Registration response:", data);
+
+    setRegisterName("");
+    setRegisterEmail("");
+    setRegisterPassword("");
+
+    setAuthMode("login");
+
+  } catch (error) {
+    console.error("Registration error:", error);
     setError(error.message);
   }
 };
@@ -307,26 +364,87 @@ useEffect(() => {
 
       <h1>Mini Task App</h1>
 
-      <h2>Login</h2>
 
-<input
-  type="email"
-  value={loginEmail}
-  onChange={(e) => setLoginEmail(e.target.value)}
-  placeholder="Enter email"
-/>
+{!user ? (
+  <>
+    {authMode === "login" ? (
+      <>
+        <h2>Login</h2>
 
-<input
-  type="password"
-  value={loginPassword}
-  onChange={(e) => setLoginPassword(e.target.value)}
-  placeholder="Enter password"
-  />
+        <input
+          type="email"
+          value={loginEmail}
+          onChange={(e) => setLoginEmail(e.target.value)}
+          placeholder="Enter email"
+        />
 
-  <button onClick={loginUser}>
-  Login
-</button>
+        <input
+          type="password"
+          value={loginPassword}
+          onChange={(e) => setLoginPassword(e.target.value)}
+          placeholder="Enter password"
+        />
 
+        <button onClick={loginUser}>
+          Login
+        </button>
+
+        <p>
+          Don't have an account?
+          <button onClick={() => setAuthMode("register")}>
+            Register
+          </button>
+        </p>
+      </>
+    ) : (
+      <>
+        <h2>Register</h2>
+
+        <input
+          type="text"
+          value={registerName}
+          onChange={(e) => setRegisterName(e.target.value)}
+          placeholder="Enter name"
+        />
+
+        <input
+          type="email"
+          value={registerEmail}
+          onChange={(e) => setRegisterEmail(e.target.value)}
+          placeholder="Enter email"
+        />
+
+        <input
+          type="password"
+          value={registerPassword}
+          onChange={(e) => setRegisterPassword(e.target.value)}
+          placeholder="Enter password"
+        />
+
+        <button onClick={registerUser}>
+          Register
+        </button>
+
+        <p>
+          Already have an account?
+          <button onClick={() => setAuthMode("login")}>
+            Login
+          </button>
+        </p>
+      </>
+    )}
+  </>
+) : (
+  <>
+    <p>Welcome, {user.name}</p>
+
+    <button onClick={logoutUser}>
+      Logout
+    </button>
+
+    {/* task UI here */}
+  </>
+)}
       <input
         type="text"
         value={title}
