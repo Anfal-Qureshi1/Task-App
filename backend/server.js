@@ -3,6 +3,7 @@ const cors = require("cors");
 const { MongoClient, ObjectId } = require("mongodb");
 require("dotenv").config();
 
+const bcrypt = require("bcrypt");
 const app = express();
 
 app.use(cors());
@@ -14,6 +15,7 @@ const client = new MongoClient(process.env.MONGODB_URI);
 
 const db = client.db("test");
 const tasksCollection = db.collection("tasks");
+const usersCollection = db.collection("users");
 
 // Start server
 async function startServer() {
@@ -251,6 +253,55 @@ app.patch("/api/tasks/:id", async (req, res) => {
 
         res.status(500).json({
             error: "Failed to update task"
+        });
+    }
+});
+
+app.post("/api/auth/register", async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                error: "Name, email, and password are required"
+            });
+        }
+
+        const existingUser = await usersCollection.findOne({
+            email: email.toLowerCase().trim()
+        });
+
+        if (existingUser) {
+            return res.status(409).json({
+                error: "User with this email already exists"
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newUser = {
+            name: name.trim(),
+            email: email.toLowerCase().trim(),
+            password: hashedPassword,
+            createdAt: new Date()
+        };
+
+        const result = await usersCollection.insertOne(newUser);
+
+        res.status(201).json({
+            message: "User registered successfully",
+            user: {
+                _id: result.insertedId,
+                name: newUser.name,
+                email: newUser.email
+            }
+        });
+
+    } catch (error) {
+        console.error("Registration error:", error);
+
+        res.status(500).json({
+            error: "Failed to register user"
         });
     }
 });
