@@ -17,6 +17,8 @@ const db = client.db("test");
 const tasksCollection = db.collection("tasks");
 const usersCollection = db.collection("users");
 
+const jwt = require("jsonwebtoken");
+
 // Start server
 async function startServer() {
     try {
@@ -38,13 +40,49 @@ async function startServer() {
 
 startServer();
 
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+        return res.status(401).json({
+            error: "Access denied. No token provided."
+        });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).json({
+            error: "Access denied. Invalid token format."
+        });
+    }
+
+    try {
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET
+        );
+
+        req.user = decoded;
+
+        next();
+
+    } catch (error) {
+        return res.status(401).json({
+            error: "Invalid or expired token"
+        });
+    }
+}
+
 
 // =========================
 // GET ALL TASKS
 // =========================
-app.get("/api/tasks", async (req, res) => {
+app.get("/api/tasks", authenticateToken, async (req, res) => {
     try {
-        const tasks = await tasksCollection.find().toArray();
+        const tasks = await tasksCollection.find({
+        userId: new ObjectId(req.user.userId)
+        }).toArray();
 
         res.json(tasks);
 
@@ -96,7 +134,7 @@ app.get("/api/tasks/:id", async (req, res) => {
 // =========================
 // POST - CREATE TASK
 // =========================
-app.post("/api/tasks", async (req, res) => {
+app.post("/api/tasks", authenticateToken, async (req, res) => {
     try {
         const { title, priority } = req.body;
 
@@ -119,6 +157,7 @@ app.post("/api/tasks", async (req, res) => {
             title: title.trim(),
             priority: priority,
             completed: false,
+            userId: new ObjectId(req.user.userId),
             createdAt: new Date()
         };
 
@@ -302,6 +341,67 @@ app.post("/api/auth/register", async (req, res) => {
 
         res.status(500).json({
             error: "Failed to register user"
+        });
+    }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({
+                error: "Email and password are required"
+            });
+        }
+
+        const user = await usersCollection.findOne({
+            email: email.toLowerCase().trim()
+        });
+
+        if (!user) {
+            return res.status(401).json({
+                error: "Invalid email or password"
+            });
+        }
+
+        const passwordMatches = await bcrypt.compare(
+            password,
+            user.password
+        );
+
+        if (!passwordMatches) {
+            return res.status(401).json({
+                error: "Invalid email or password"
+            });
+        }
+
+        const token = jwt.sign(
+            {
+                userId: user._id.toString(),
+                email: user.email
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "1d"
+            }
+        );
+
+        res.json({
+            message: "Login successful",
+            token: token,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email
+            }
+        });
+
+    } catch (error) {
+        console.error("Login error:", error);
+
+        res.status(500).json({
+            error: "Failed to login"
         });
     }
 });
